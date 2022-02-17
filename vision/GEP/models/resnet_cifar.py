@@ -8,7 +8,10 @@ import math
 
 
 def conv3x3(in_planes, out_planes, stride=1):
-    """3x3 convolution with padding"""
+    """3x3 convolution with padding
+    stride 步长
+    bias:类似于ax+b 中的b 卷积后跟BN置为false
+    """
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
 
@@ -18,18 +21,19 @@ class BasicBlock(nn.Module):
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
-
+        super(BasicBlock, self).__init__()#继承父类（nn.Module）的方法
+        #同时添加子类的方法
         self.conv1 = conv3x3(inplanes, planes, stride)
-        self.gn1 = nn.GroupNorm(gn_groups, planes, affine=False) 
+        self.gn1 = nn.GroupNorm(gn_groups, planes, affine=False)
+        #分组做归一化 affine为true则对归一结果放射变化ax+b
         #self.bn1 = nn.BatchNorm2d(planes, affine=False)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=True)#激活函数 0 or x inplace说明直接对原值修改
         self.conv2 = conv3x3(planes, planes)
         self.gn2 = nn.GroupNorm(gn_groups, planes, affine=False) 
         #self.bn2 = nn.BatchNorm2d(planes, affine=False)
 
 
-        self.downsample = downsample
+        self.downsample = downsample#默认情况不做下采样
 
     def forward(self, x):
         identity = x
@@ -43,7 +47,7 @@ class BasicBlock(nn.Module):
 
         if self.downsample is not None:
             identity = self.downsample(x)
-            identity = torch.cat((identity, torch.zeros_like(identity)), 1)
+            identity = torch.cat((identity, torch.zeros_like(identity)), 1)#拼接 identity左zero右//0则A上B下
 
         out += identity
         out = self.relu(out)
@@ -56,7 +60,7 @@ class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes=10):
         super(ResNet, self).__init__()
 
-        self.num_layers = sum(layers)
+        self.num_layers = sum(layers)#num_layer RNN堆叠个数
         self.inplanes = 16
         self.conv1 = conv3x3(3, 16)
         self.gn1 = nn.GroupNorm(gn_groups, 16, affine=False) 
